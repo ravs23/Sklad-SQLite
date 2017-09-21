@@ -5,11 +5,22 @@ using System.Data.SqlClient;
 using System.Data.SQLite;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Sklad
 {
+    struct Params
+    {
+        public int code;
+        public int quant;
+        public double dc;
+        public double pc;
+        public bool discont;
+        public UpDownOperation upDownOp;
+    }
+
     static class SkladBase
     {
         /// <summary>
@@ -100,6 +111,7 @@ namespace Sklad
             return resultDetails;
         }
 
+
         /// <summary>
         /// Изменяем количество продукта в БД
         /// </summary>
@@ -109,11 +121,13 @@ namespace Sklad
         /// <param name="pc">ПЦ</param>
         /// <param name="discont">Дисконт</param>
         /// <param name="upDownOp">Отнимаем (Down) или прибавляем (Up)</param>
-        public static void UpDownQtyPrice(int code, int quant, double dc, double pc, bool discont, UpDownOperation upDownOp)
+        public static void UpDownQtyPrice(object param)
         {
-            int new_quant = quant;
+            Params p = (Params)param;
 
-            if (upDownOp == UpDownOperation.Down)  // определяем что нужно: отнять или прибавить кол-во
+            int new_quant = p.quant;
+
+            if (p.upDownOp == UpDownOperation.Down)  // определяем что нужно: отнять или прибавить кол-во
                 new_quant--;
             else
                 new_quant++;
@@ -126,14 +140,36 @@ namespace Sklad
                                WHERE code = @code AND quantity = @quant AND priceDC = @dc AND pricePC = @pc AND discont = @discont";
 
                 SQLiteCommand command = new SQLiteCommand(sql, connection);
-                command.Parameters.AddWithValue("code", code);
-                command.Parameters.AddWithValue("quant", quant);
-                command.Parameters.AddWithValue("dc", dc);
-                command.Parameters.AddWithValue("pc", pc);
-                command.Parameters.AddWithValue("discont", discont);
+                command.Parameters.AddWithValue("code", p.code);
+                command.Parameters.AddWithValue("quant", p.quant);
+                command.Parameters.AddWithValue("dc", p.dc);
+                command.Parameters.AddWithValue("pc", p.pc);
+                command.Parameters.AddWithValue("discont", p.discont);
                 command.Parameters.AddWithValue("new_quant", new_quant);
                 command.ExecuteNonQuery();
             }
+        }
+        /// <summary>
+        /// Изменяем количество продукта в БД
+        /// </summary>
+        /// <param name="code">Код</param>
+        /// <param name="quant">Количество</param>
+        /// <param name="dc">ДЦ</param>
+        /// <param name="pc">ПЦ</param>
+        /// <param name="discont">Дисконт</param>
+        /// <param name="upDownOp">Отнимаем (Down) или прибавляем (Up)</param>
+        public static async void UpDownQtyPriceAsync(int code, int quant, double dc, double pc, bool discont, UpDownOperation upDownOp)
+        {
+            Params p = new Params();
+            // int code, int quant, double dc, double pc, bool discont, UpDownOperation upDownOp
+            p.code = code;
+            p.quant = quant;
+            p.dc = dc;
+            p.pc = pc;
+            p.discont = discont;
+            p.upDownOp = upDownOp;
+
+            await Task.Factory.StartNew(UpDownQtyPrice, p);
         }
 
         /// <summary>
@@ -649,7 +685,7 @@ namespace Sklad
                         cmdDel.ExecuteNonQuery();
                     }
                 }
-               reader.Close();
+                reader.Close();
             }
         }
         #endregion

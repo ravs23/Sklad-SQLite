@@ -182,7 +182,7 @@ namespace Sklad
                 case 0:  // если нажали на кнопку "-1"
                     if (quant > 1)
                     {
-                        SkladBase.UpDownQtyPrice(code, quant, dc, pc, discont, UpDownOperation.Down); // вызываем метод уменьшения кол-ва продукта в DB
+                        SkladBase.UpDownQtyPriceAsync(code, quant, dc, pc, discont, UpDownOperation.Down); // вызываем метод уменьшения кол-ва продукта в DB
 
                         // Обновляем кол-во в ячейках обоих гридов
                         dgvMain.SelectedRows[0].Cells["Quantity"].Value = Convert.ToInt32(dgvMain.SelectedRows[0].Cells["Quantity"].Value) - 1;// = Total quant - 1;
@@ -194,7 +194,7 @@ namespace Sklad
 
                 case 1:  // если нажали на кнопку "+1"
 
-                    SkladBase.UpDownQtyPrice(code, quant, dc, pc, discont, UpDownOperation.Up); // вызываем метод уменьшения кол-ва продукта в DB
+                    SkladBase.UpDownQtyPriceAsync(code, quant, dc, pc, discont, UpDownOperation.Up); // вызываем метод уменьшения кол-ва продукта в DB
 
                     dgvMain.SelectedRows[0].Cells["Quantity"].Value = Convert.ToInt32(dgvMain.SelectedRows[0].Cells["Quantity"].Value) + 1;// = Total quant + 1;
                     dgvDetails.Rows[e.RowIndex].Cells["Quant"].Value = Convert.ToInt32(dgvDetails.Rows[e.RowIndex].Cells["Quant"].Value) + 1;// = Total quant + 1;
