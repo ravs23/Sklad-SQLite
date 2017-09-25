@@ -101,13 +101,13 @@ namespace Sklad
             }
 
         }
-
-        private void btnAdd_Click(object sender, EventArgs e)
+        //TODO: !!
+        private async void btnAdd_Click(object sender, EventArgs e)
         {
             if (CheckInputData()) // Проверяем введенные данные в форме
             {
                 // Проверяем есть ли такой период и тип в БД.Если есть, получаем id(табл Catalog), если нет - создаём и получаем id
-                int catalogId = SkladBase.AddCatalog((int)cbCatalog.SelectedValue, cbTypeCatalog.SelectedIndex + 1);
+                int catalogId = await SkladBase.AddCatalogAsync((int)cbCatalog.SelectedValue, cbTypeCatalog.SelectedIndex + 1);
                 // Проверяем есть ли такой продукт в БД. Если есть, получаем id (табл Product), если нет - создаём и получаем id
                 SkladBase.AddProduct(tbCode.Text, tbNames.Text, (int)cbCategory.SelectedValue);
 

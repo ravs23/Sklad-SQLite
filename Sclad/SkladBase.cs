@@ -11,15 +11,7 @@ using System.Windows.Forms;
 
 namespace Sklad
 {
-    struct Params
-    {
-        public int code;
-        public int quant;
-        public double dc;
-        public double pc;
-        public bool discont;
-        public UpDownOperation upDownOp;
-    }
+
 
     static class SkladBase
     {
@@ -112,6 +104,8 @@ namespace Sklad
         }
 
 
+
+
         /// <summary>
         /// Изменяем количество продукта в БД
         /// </summary>
@@ -121,13 +115,11 @@ namespace Sklad
         /// <param name="pc">ПЦ</param>
         /// <param name="discont">Дисконт</param>
         /// <param name="upDownOp">Отнимаем (Down) или прибавляем (Up)</param>
-        public static void UpDownQtyPrice(object param)
+        public static void UpDownQtyPrice(int code, int quant, double dc, double pc, bool discont, UpDownOperation upDownOp)
         {
-            Params p = (Params)param;
+            int new_quant = quant;
 
-            int new_quant = p.quant;
-
-            if (p.upDownOp == UpDownOperation.Down)  // определяем что нужно: отнять или прибавить кол-во
+            if (upDownOp == UpDownOperation.Down)  // определяем что нужно: отнять или прибавить кол-во
                 new_quant--;
             else
                 new_quant++;
@@ -140,17 +132,17 @@ namespace Sklad
                                WHERE code = @code AND quantity = @quant AND priceDC = @dc AND pricePC = @pc AND discont = @discont";
 
                 SQLiteCommand command = new SQLiteCommand(sql, connection);
-                command.Parameters.AddWithValue("code", p.code);
-                command.Parameters.AddWithValue("quant", p.quant);
-                command.Parameters.AddWithValue("dc", p.dc);
-                command.Parameters.AddWithValue("pc", p.pc);
-                command.Parameters.AddWithValue("discont", p.discont);
+                command.Parameters.AddWithValue("code", code);
+                command.Parameters.AddWithValue("quant", quant);
+                command.Parameters.AddWithValue("dc", dc);
+                command.Parameters.AddWithValue("pc", pc);
+                command.Parameters.AddWithValue("discont", discont);
                 command.Parameters.AddWithValue("new_quant", new_quant);
                 command.ExecuteNonQuery();
             }
         }
         /// <summary>
-        /// Изменяем количество продукта в БД
+        /// Изменяем количество продукта в БД асинхронно
         /// </summary>
         /// <param name="code">Код</param>
         /// <param name="quant">Количество</param>
@@ -158,19 +150,23 @@ namespace Sklad
         /// <param name="pc">ПЦ</param>
         /// <param name="discont">Дисконт</param>
         /// <param name="upDownOp">Отнимаем (Down) или прибавляем (Up)</param>
-        public static async void UpDownQtyPriceAsync(int code, int quant, double dc, double pc, bool discont, UpDownOperation upDownOp)
+        public static Task UpDownQtyPriceAsync(int code, int quant, double dc, double pc, bool discont, UpDownOperation upDownOp)
         {
             Params p = new Params();
-            // int code, int quant, double dc, double pc, bool discont, UpDownOperation upDownOp
             p.code = code;
             p.quant = quant;
             p.dc = dc;
             p.pc = pc;
             p.discont = discont;
             p.upDownOp = upDownOp;
-
-            await Task.Factory.StartNew(UpDownQtyPrice, p);
+            return Task.Factory.StartNew(UpDownQtyPrice, p);
         }
+        static void UpDownQtyPrice(object param)
+        {
+            Params p = (Params)param;
+            UpDownQtyPrice(p.code, p.quant, p.dc, p.pc, p.discont, p.upDownOp);
+        }
+
 
         /// <summary>
         /// Удаляем продукт из БД, из таблицы Price
@@ -180,6 +176,7 @@ namespace Sklad
         /// <param name="dc">ДЦ</param>
         /// <param name="pc">ПЦ</param>
         /// <param name="discont">Дисконт</param>
+        /// <summary>
         public static void DeleteProdFromPrice(int code, int quant, double dc, double pc, bool discont)
         {
             using (SQLiteConnection connection = new SQLiteConnection(DataBase.ConStrDB))
@@ -196,6 +193,24 @@ namespace Sklad
                 command.ExecuteNonQuery();
             }
         }
+        /// Удаляем продукт из БД, из таблицы Price асинхронно
+        /// </summary>
+        /// <param name="code">Код</param>
+        /// <param name="quant">Количество</param>
+        /// <param name="dc">ДЦ</param>
+        /// <param name="pc">ПЦ</param>
+        /// <param name="discont">Дисконт</param>
+        public static Task DeleteProdFromPriceAsync(int code, int quant, double dc, double pc, bool discont)
+        {
+            Params p = new Params();
+            p.code = code;
+            p.quant = quant;
+            p.dc = dc;
+            p.pc = pc;
+            p.discont = discont;
+
+            return Task.Factory.StartNew(DeleteProdFromPrice, p);
+        }
 
         /// <summary>
         /// Удаляем все продукты из БД, из таблицы Price по коду
@@ -210,10 +225,30 @@ namespace Sklad
                                WHERE code = @code";
 
                 SQLiteCommand command = new SQLiteCommand(sql, connection);
-                command.Parameters.AddWithValue("code", code);
+                command.Parameters.AddWithValue("code", (int)code);
                 command.ExecuteNonQuery();
             }
         }
+        /// <summary>
+        /// Удаляем все продукты из БД, из таблицы Price по коду асинхронно
+        /// </summary>
+        /// <param name="code">Код</param>
+        public static Task DeleteProdFromPriceAsync(int code)
+        {
+            return Task.Factory.StartNew(DeleteProdFromPrice, code);
+        }
+
+        static void DeleteProdFromPrice(object param)
+        {
+            if (param is int)
+                DeleteProdFromPrice((int)param);
+            else
+            {
+                Params p = (Params)param;
+                DeleteProdFromPrice(p.code, p.quant, p.dc, p.pc, p.discont);
+            }
+        }
+
 
         /// <summary>
         /// Удаляем продукт из БД, из таблицы Product.
@@ -229,12 +264,25 @@ namespace Sklad
                                WHERE code = @code";
 
                 SQLiteCommand command = new SQLiteCommand(sql, connection);
-                command.Parameters.AddWithValue("code", code);
+                command.Parameters.AddWithValue("code", (int)code);
                 command.ExecuteNonQuery();
             }
         }
+        /// <summary>
+        /// Удаляем продукт из БД, из таблицы Product. Асинхронно
+        /// NOTE! Удалить можно только после удаления всех продуктов с таким же кодом из таблицы Price
+        /// </summary>
+        /// <param name="code">Код</param>
+        public static Task DeleteProdFromProductTableAsync(int code)
+        {
+            return Task.Factory.StartNew(DeleteProdFromProductTable, code);
+        }
+        static void DeleteProdFromProductTable(object code)
+        {
+            DeleteProdFromProductTable((int)code);
+        }
 
-        // разбить на методы
+
         /// <summary>
         /// Добавляем кталог в таблицу Catalog (id периода и тип)
         /// </summary>
@@ -293,6 +341,26 @@ namespace Sklad
 
             return catalogIndex;
         }
+        /// <summary>
+        /// Добавляем кталог в таблицу Catalog (id периода и тип) асинхронно
+        /// </summary>
+        /// <param name="period"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public static Task<int> AddCatalogAsync(int period, int type)
+        {
+            Params p = new Params();
+            p.period = period;
+            p.type = type;
+
+            return Task<int>.Factory.StartNew(AddCatalog, p);
+        }
+        static int AddCatalog(object param)
+        {
+            Params p = (Params)param;
+            return AddCatalog(p.period, p.type);
+        }
+        
 
         #region Добавляем каталожный период
         /// <summary>
@@ -314,6 +382,24 @@ namespace Sklad
 
             //обновляем информацию в локальном листе
             CatalogPeriod.MakeList();
+        }
+        /// <summary>
+        /// Добавляем каталожный период в БД асинхронно (без проверки на его существование)
+        /// </summary>
+        /// <param name="period"></param>
+        /// <param name="year"></param>
+        public static Task AddCatalogPeriodAsync(int period, int year)
+        {
+            Params p = new Params();
+            p.period = period;
+            p.year = year;
+
+            return Task.Factory.StartNew(AddCatalogPeriod, p);
+        }
+        static void AddCatalogPeriod(object param)
+        {
+            Params p = (Params)param;
+            AddCatalogPeriod(p.period, p.year);
         }
 
         static int CheckExistYear(int year)
@@ -376,6 +462,11 @@ namespace Sklad
             }
         }
         #endregion
+
+
+
+
+
 
         /// <summary>
         /// Проверяем есть ли такой продукт в БД (табл Product). Еесли нет - создаём

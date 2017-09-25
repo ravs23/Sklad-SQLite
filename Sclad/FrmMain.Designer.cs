@@ -29,9 +29,9 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FrmMain));
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle4 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle5 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle6 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
             this.btnAdd = new System.Windows.Forms.Button();
             this.dgvMain = new System.Windows.Forms.DataGridView();
             this.Code = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -273,10 +273,10 @@
             // DC
             // 
             this.DC.DataPropertyName = "priceDC";
-            dataGridViewCellStyle4.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(192)))));
-            dataGridViewCellStyle4.Format = "N2";
-            dataGridViewCellStyle4.NullValue = null;
-            this.DC.DefaultCellStyle = dataGridViewCellStyle4;
+            dataGridViewCellStyle1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(192)))));
+            dataGridViewCellStyle1.Format = "N2";
+            dataGridViewCellStyle1.NullValue = null;
+            this.DC.DefaultCellStyle = dataGridViewCellStyle1;
             this.DC.HeaderText = "ДЦ";
             this.DC.Name = "DC";
             this.DC.ReadOnly = true;
@@ -285,9 +285,9 @@
             // PC
             // 
             this.PC.DataPropertyName = "pricePC";
-            dataGridViewCellStyle5.Format = "N2";
-            dataGridViewCellStyle5.NullValue = null;
-            this.PC.DefaultCellStyle = dataGridViewCellStyle5;
+            dataGridViewCellStyle2.Format = "N2";
+            dataGridViewCellStyle2.NullValue = null;
+            this.PC.DefaultCellStyle = dataGridViewCellStyle2;
             this.PC.HeaderText = "ПЦ";
             this.PC.Name = "PC";
             this.PC.ReadOnly = true;
@@ -296,8 +296,8 @@
             // Quant
             // 
             this.Quant.DataPropertyName = "quantity";
-            dataGridViewCellStyle6.ForeColor = System.Drawing.Color.Red;
-            this.Quant.DefaultCellStyle = dataGridViewCellStyle6;
+            dataGridViewCellStyle3.ForeColor = System.Drawing.Color.Red;
+            this.Quant.DefaultCellStyle = dataGridViewCellStyle3;
             this.Quant.HeaderText = "Кол";
             this.Quant.Name = "Quant";
             this.Quant.ReadOnly = true;
@@ -477,7 +477,7 @@
             this.tsmAlwaysOnTop.Name = "tsmAlwaysOnTop";
             this.tsmAlwaysOnTop.Size = new System.Drawing.Size(147, 22);
             this.tsmAlwaysOnTop.Text = "Закрепить";
-            this.tsmAlwaysOnTop.Click += new System.EventHandler(this.toolStripMenuItem2_Click);
+            this.tsmAlwaysOnTop.Click += new System.EventHandler(this.tsmAlwaysOnTop_Click);
             // 
             // tsmOptions
             // 

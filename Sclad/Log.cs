@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Sklad
@@ -8,15 +10,20 @@ namespace Sklad
     {
         static string logFileName = "Sklad_log.txt";
 
-        public static void LogWrite(string msg)
+        public static void LogWrite(object msg)
         {
             if (Settings.Logging)
             {
                 using (StreamWriter writer = File.AppendText(logFileName))
                 {
-                    writer.WriteLine("[{0}] {1}", DateTime.Now, msg);
+                    writer.WriteLine("[{0}] {1}", DateTime.Now, msg.ToString());
                 }
             }
+        }
+
+        public static Task LogWriteAsync(string msg)
+        {
+            return Task.Factory.StartNew(LogWrite, msg);
         }
 
         public static void CheckSizeLogFile()

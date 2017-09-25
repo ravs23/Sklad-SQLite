@@ -8,6 +8,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -162,7 +163,7 @@ namespace Sklad
         }
 
         // обрабатываем нажатие на +/- в грид Detail
-        private void dgvDetails_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        private async void dgvDetails_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
             // если грид Detail пуст, не обрабатывать нажатие на кнопку +/-, т.к. генерируется исключение
             if (((sender as DataGridView).DataSource as DataTable) == null || ((sender as DataGridView).DataSource as DataTable).Rows.Count == 0)
@@ -182,40 +183,36 @@ namespace Sklad
                 case 0:  // если нажали на кнопку "-1"
                     if (quant > 1)
                     {
-                        SkladBase.UpDownQtyPriceAsync(code, quant, dc, pc, discont, UpDownOperation.Down); // вызываем метод уменьшения кол-ва продукта в DB
-
                         // Обновляем кол-во в ячейках обоих гридов
                         dgvMain.SelectedRows[0].Cells["Quantity"].Value = Convert.ToInt32(dgvMain.SelectedRows[0].Cells["Quantity"].Value) - 1;// = Total quant - 1;
                         dgvDetails.Rows[e.RowIndex].Cells["Quant"].Value = Convert.ToInt32(dgvDetails.Rows[e.RowIndex].Cells["Quant"].Value) - 1;// = Total quant - 1;
 
-                        Log.LogWrite($"{code} уменьшен на 1 шт. ({productName}, ДЦ {dc}, ПЦ {pc}, Скидка " + (discont==true ? "есть":"нет") + ")");
+                        await SkladBase.UpDownQtyPriceAsync(code, quant, dc, pc, discont, UpDownOperation.Down); // вызываем метод уменьшения кол-ва продукта в DB
+                        await Log.LogWriteAsync($"{code} уменьшен на 1 шт. ({productName}, ДЦ {dc}, ПЦ {pc}, Скидка " + (discont==true ? "есть":"нет") + ")");
                     }
                     break;
 
                 case 1:  // если нажали на кнопку "+1"
-
-                    SkladBase.UpDownQtyPriceAsync(code, quant, dc, pc, discont, UpDownOperation.Up); // вызываем метод уменьшения кол-ва продукта в DB
-
                     dgvMain.SelectedRows[0].Cells["Quantity"].Value = Convert.ToInt32(dgvMain.SelectedRows[0].Cells["Quantity"].Value) + 1;// = Total quant + 1;
                     dgvDetails.Rows[e.RowIndex].Cells["Quant"].Value = Convert.ToInt32(dgvDetails.Rows[e.RowIndex].Cells["Quant"].Value) + 1;// = Total quant + 1;
 
-                    Log.LogWrite($"{code} увеличен на 1 шт. ({productName}, ДЦ {dc}, ПЦ {pc}, Скидка " + (discont == true ? "есть" : "нет") + ")");
+                    await SkladBase.UpDownQtyPriceAsync(code, quant, dc, pc, discont, UpDownOperation.Up); // вызываем метод уменьшения кол-ва продукта в DB
+                    await Log.LogWriteAsync($"{code} увеличен на 1 шт. ({productName}, ДЦ {dc}, ПЦ {pc}, Скидка " + (discont == true ? "есть" : "нет") + ")");
                     break;
 
-                case 2: // если нажали "Х" в грид Detail
+                case 2:  //если нажали "Х" в грид Detail
                     DeleteProdFromPrice(code, quant, dc, pc, discont, e.RowIndex);
 
-                    Log.LogWrite($"{code} уменьшен на {quant} шт. ({productName}, ДЦ {dc}, ПЦ {pc}, Скидка " + (discont == true ? "есть" : "нет") + ")");
+                    await Log.LogWriteAsync($"{code} уменьшен на {quant} шт. ({productName}, ДЦ {dc}, ПЦ {pc}, Скидка " + (discont == true ? "есть" : "нет") + ")");
                     break;
             }
         }
 
-        private void DeleteProdFromPrice(int code, int quant, double dc, double pc, bool discont, int rowIndex)
+        private async void DeleteProdFromPrice(int code, int quant, double dc, double pc, bool discont, int rowIndex)
         {
-            SkladBase.DeleteProdFromPrice(code, quant, dc, pc, discont);
-
             dgvDetails.Rows.RemoveAt(rowIndex); //удаляем строку из грид Detail
-
+            
+            await SkladBase.DeleteProdFromPriceAsync(code, quant, dc, pc, discont);
             // Корректируем кол-во в основном гриде
             if (dgvDetails.Rows.Count > 0)
             {
@@ -223,28 +220,29 @@ namespace Sklad
             }
             else
             {
-                SkladBase.DeleteProdFromProductTable(code); // удаляем продукт из табл Product
-
                 dgvMain.Rows.Remove(dgvMain.CurrentRow);
 
                 if (dgvMain.RowCount > 0)
                     dgvMain.CurrentRow.Selected = true;
+
+                await SkladBase.DeleteProdFromProductTableAsync(code); // удаляем продукт из табл Product
             }
+
         }
 
         // Обрабатываем нажатие кнопки 'X' в гриде
-        private void dgvMain_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        private async void dgvMain_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.ColumnIndex != 0) return;
-
-            SkladBase.DeleteProdFromPrice(Int32.Parse(currentCode));
-            SkladBase.DeleteProdFromProductTable(Int32.Parse(currentCode));
-
-            Log.LogWrite($"{currentCode} удалены ВСЕ {dgvMain.CurrentRow.Cells[3].Value} шт. ({dgvMain.CurrentRow.Cells[2].Value})");
 
             dgvMain.Rows.Remove(dgvMain.CurrentRow);
             if (dgvMain.RowCount > 0)
                 dgvMain.CurrentRow.Selected = true;
+
+            await SkladBase.DeleteProdFromPriceAsync(Int32.Parse(currentCode));
+            await SkladBase.DeleteProdFromProductTableAsync(Int32.Parse(currentCode));
+
+            await Log.LogWriteAsync($"{currentCode} удалены ВСЕ {dgvMain.CurrentRow.Cells[3].Value} шт. ({dgvMain.CurrentRow.Cells[2].Value})");
         }
 
 
@@ -259,12 +257,12 @@ namespace Sklad
                 Settings.DisplayCatalogPeriodsWithZero = frmSettings.chbAddZero.Checked;
                 Settings.Logging = frmSettings.chbLog.Checked;
 
-                //TODO: Реализоавть
+                //TODO: Реализоавть // !Реализовал.
                 Settings.SaveSettings();
             }
         }
 
-        private void toolStripMenuItem2_Click(object sender, EventArgs e)
+        private void tsmAlwaysOnTop_Click(object sender, EventArgs e)
         {
             if (TopMost == false)
             {
@@ -320,6 +318,7 @@ namespace Sklad
             FrmStatistic frmStaristic = new FrmStatistic();
             frmStaristic.ShowDialog(this);
         }
+
     }
 }
 
