@@ -26,7 +26,7 @@ namespace Sklad
             lblSelect = new Label[] { lbl2_1, lbl2_2, lbl2_3, lbl2_4, lbl2_5, lbl2_6, lbl2_7 };
         }
 
-        private void FrmStatistic_Load(object sender, EventArgs e)
+        private async void FrmStatistic_Load(object sender, EventArgs e)
         {
             for(int i=0; i < lblTotal.Length; i++)
             {
@@ -46,19 +46,19 @@ namespace Sklad
             cbCategory.DisplayMember = "Name";
             cbCategory.ValueMember = "Id";
 
-            ResultTotal = Statistic.GetStatistic();
+            ResultTotal = await Statistic.GetStatisticAsync();
             for (int i = 0; i < lblTotal.Length; i++)
                 lblTotal[i].Text = ResultTotal[i];
         }
 
-        private void comboboxes_SelectionChangeCommitted(object sender, EventArgs e)
+        private async void comboboxes_SelectionChangeCommitted(object sender, EventArgs e)
         {
             if (cbTypeCatalog.SelectedIndex < 0)
                 cbTypeCatalog.SelectedIndex = 0;
             if (cbCategory.SelectedValue == null)
                 cbCategory.SelectedValue = 0;
 
-            ResultSelect = Statistic.GetStatistic(cbTypeCatalog.SelectedIndex, (int)cbCategory.SelectedValue,this);
+            ResultSelect = await Statistic.GetStatisticAsync(cbTypeCatalog.SelectedIndex, (int)cbCategory.SelectedValue);
 
             for(int i=0; i < ResultSelect.Length; i++)
             {

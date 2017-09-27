@@ -10,7 +10,7 @@ namespace Sklad
     {
         static string logFileName = "Sklad_log.txt";
 
-        public static void LogWrite(object msg)
+        public static void LogWrite(string msg)
         {
             if (Settings.Logging)
             {
@@ -20,11 +20,15 @@ namespace Sklad
                 }
             }
         }
-
         public static Task LogWriteAsync(string msg)
         {
             return Task.Factory.StartNew(LogWrite, msg);
         }
+        static void LogWrite(object msg)
+        {
+            LogWrite((string)msg);
+        }
+
 
         public static void CheckSizeLogFile()
         {

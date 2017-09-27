@@ -5,6 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -24,7 +25,6 @@ namespace Sklad
             get
             {
                 return SkladBase.ConvertPeriodToText(selectedPeriod, selectedYear);
-              
             }
 }
 
@@ -35,13 +35,34 @@ public FrmSearchResult()
 
         public FrmSearchResult(string fieldSearch, SearchBy searchBy) : this()
         {
-            dgvDB.DataSource = SkladBase.SearchForAdd(fieldSearch, searchBy);
-            dgvPrice.DataSource = ExcelSearch.Search(fieldSearch, searchBy);
+            gbBD.ForeColor = Color.Red;
+            gbBD.Text += "  Поиск ...";
+            gbPrices.ForeColor = Color.Red;
+            gbPrices.Text += "  Поиск ...";
 
+            Search(fieldSearch, searchBy);
+            
+            // перенесенов метод Search //
+            //dgvDB.DataSource = SkladBase.SearchForAdd(fieldSearch, searchBy);
+            //dgvPrice.DataSource = ExcelSearch.Search(fieldSearch, searchBy);
+
+            //this.Text += string.Format($"  ({fieldSearch})");
+
+            //gbBD.Text += "  (" + (dgvDB.DataSource as DataTable).Rows.Count.ToString() + ")";
+            //gbPrices.Text += "  (" + (dgvPrice.DataSource as DataTable).Rows.Count.ToString() + ")";
+        }
+
+        async void Search (string fieldSearch, SearchBy searchBy)
+        {
             this.Text += string.Format($"  ({fieldSearch})");
 
-            gbBD.Text += "  (" + (dgvDB.DataSource as DataTable).Rows.Count.ToString() + ")";
-            gbPrices.Text += "  (" + (dgvPrice.DataSource as DataTable).Rows.Count.ToString() + ")";
+            dgvDB.DataSource = await SkladBase.SearchForAddAsync(fieldSearch, searchBy);
+            gbBD.ForeColor = Color.Black;
+            gbBD.Text = "Результаты поиска в локальной базе:" + "  (" + (dgvDB.DataSource as DataTable).Rows.Count.ToString() + ")";
+
+            dgvPrice.DataSource = await ExcelSearch.SearchAsync(fieldSearch, searchBy);
+            gbPrices.ForeColor = Color.Black;
+            gbPrices.Text = "Результаты поиска в прайсах:" + "  (" + (dgvPrice.DataSource as DataTable).Rows.Count.ToString() + ")";
         }
 
         private void SetPeriod(string period, out int periodSelected, out int yearSelected)

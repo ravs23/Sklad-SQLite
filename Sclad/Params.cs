@@ -17,10 +17,15 @@ namespace Sklad
         public int period;
         public int type;
         public int year;
-    }
-
-    class Test
-    {
-       
+        public string fieldSearch;
+        public SearchBy searchBy;
+        public string code_;
+        public string name;
+        public int category;
+        public int catalogId;
+        public string description;
+        public int id;
+        public int newQuantity;
+        public int catalogType;
     }
 }

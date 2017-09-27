@@ -5,11 +5,16 @@ using System.Windows.Forms;
 using OfficeOpenXml;
 using System.IO;
 using System.Data.SQLite;
+using System.Threading.Tasks;
 
 namespace Sklad
 {
     static class ImportExport
     {
+        static int processedProduct;
+        static int allProduct;
+        static int errorCount;
+
         #region Export
 
         public static void Export(string fileName)
@@ -64,6 +69,15 @@ namespace Sklad
                 }
             }
         }
+        public static Task ExportAsync(string fileName)
+        {
+            return Task.Factory.StartNew(Export, fileName);
+        }
+        static void Export(object param)
+        {
+            Export((string)param);
+        }
+
 
         static DataTable GetDataFromDB()
         {
@@ -91,32 +105,59 @@ namespace Sklad
 
         public static void Import(string fileName)
         {
-            DataTable dt = GetDataFromXLSX(fileName);
-
-            foreach (DataRow row in dt.Rows)
+            try
             {
-                int yearID = GetIdYear(row["year"].ToString());
-                int catalogPeriodID = GetCatalogPeriodID(row["number"].ToString(), yearID);
-                int catalogTypeID = GetCatalogTypeID(row["type"].ToString());
-                int catalogID = GetCatalogID(catalogPeriodID, catalogTypeID);
-                int categoryID = GetCategoryID(row["category"].ToString());
-                bool existProductInProductTable = ExistProductInProductTable(row["code"].ToString());
-                if (!existProductInProductTable)
-                {
-                    AddProductToProductTable(row["code"].ToString(), row["name"].ToString(), categoryID);
-                }
-                int quantityDB;
-                int productIDInPriceTable = ExistSuchProductInPriceTable(out quantityDB, row["code"].ToString(), Convert.ToDouble(row["priceDC"]), Convert.ToDouble(row["pricePC"]), catalogID, Convert.ToBoolean(row["discont"]));
-                if (productIDInPriceTable == 0)
-                    AddProductToPriceTable(row["code"].ToString(), Convert.ToDouble(row["priceDC"]), Convert.ToDouble(row["pricePC"]), catalogID, row["quantity"].ToString(), Convert.ToBoolean(row["discont"]), row["description"].ToString());
-                else
-                    UpdateProductInPriceTable(productIDInPriceTable, quantityDB + Convert.ToInt32(row["quantity"]));
-            }
+                DataTable dt = GetDataFromXLSX(fileName);
 
+                foreach (DataRow row in dt.Rows)
+                {
+                    int yearID = GetIdYear(row["year"].ToString());
+                    int catalogPeriodID = GetCatalogPeriodID(row["number"].ToString(), yearID);
+                    int catalogTypeID = GetCatalogTypeID(row["type"].ToString());
+                    int catalogID = GetCatalogID(catalogPeriodID, catalogTypeID);
+                    int categoryID = GetCategoryID(row["category"].ToString());
+                    bool existProductInProductTable = ExistProductInProductTable(row["code"].ToString());
+                    if (!existProductInProductTable)
+                    {
+                        AddProductToProductTable(row["code"].ToString(), row["name"].ToString(), categoryID);
+                    }
+                    int quantityDB;
+                    int productIDInPriceTable = ExistSuchProductInPriceTable(out quantityDB, row["code"].ToString(), Convert.ToDouble(row["priceDC"]), Convert.ToDouble(row["pricePC"]), catalogID, Convert.ToBoolean(row["discont"]));
+                    if (productIDInPriceTable == 0)
+                        AddProductToPriceTable(row["code"].ToString(), Convert.ToDouble(row["priceDC"]), Convert.ToDouble(row["pricePC"]), catalogID, row["quantity"].ToString(), Convert.ToBoolean(row["discont"]), row["description"].ToString());
+                    else
+                        UpdateProductInPriceTable(productIDInPriceTable, quantityDB + Convert.ToInt32(row["quantity"]));
+
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.Message, "Внимание!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                MessageBox.Show($"Добавленно: {processedProduct} из {allProduct} записей" + Environment.NewLine +
+                    $"Пропущенно {errorCount} записей",
+                    (processedProduct != 0) ? "Импорт выполнен успешно" : "Импорт не выполнен", MessageBoxButtons.OK,
+                    (processedProduct != 0) ? MessageBoxIcon.Information : MessageBoxIcon.Error);
+            }
+        }
+
+        public static Task ImportAsync(string fileName)
+        {
+            return Task.Factory.StartNew(Import, fileName);
+        }
+        static void Import(object fileName)
+        {
+            Import((string)fileName);
         }
 
         static DataTable GetDataFromXLSX(string fileName)
         {
+            processedProduct = 0;
+            allProduct = 0;
+            errorCount = 0;
+
             DataTable dt = CreateDataTable();
 
             try
@@ -134,7 +175,6 @@ namespace Sklad
                     ExcelWorksheet ws = excel.Workbook.Worksheets[1];
                     int totalRow = ws.Dimension.End.Row;
 
-                    int errorCount = 0;
                     for (int i = startRow; i <= totalRow; i++)
                     {
                         DataRow row = dt.NewRow();
@@ -280,10 +320,13 @@ namespace Sklad
 
 
                     }
-                    MessageBox.Show($"Добавленно: {totalRow - startRow - errorCount + 1} из {totalRow - startRow + 1} записей" + Environment.NewLine +
-                        $"Пропущенно {errorCount} записей",
-                        (totalRow - startRow - errorCount + 1 != 0) ? "Импорт выполнен успешно" : "Импорт не выполнен", MessageBoxButtons.OK,
-                        (totalRow - startRow - errorCount + 1 != 0) ? MessageBoxIcon.Information : MessageBoxIcon.Error);
+                    processedProduct = totalRow - startRow - errorCount + 1;
+                    allProduct = totalRow - startRow + 1;
+
+                    //MessageBox.Show($"Добавленно: {totalRow - startRow - errorCount + 1} из {totalRow - startRow + 1} записей" + Environment.NewLine +
+                    //    $"Пропущенно {errorCount} записей",
+                    //    (totalRow - startRow - errorCount + 1 != 0) ? "Импорт выполнен успешно" : "Импорт не выполнен", MessageBoxButtons.OK,
+                    //    (totalRow - startRow - errorCount + 1 != 0) ? MessageBoxIcon.Information : MessageBoxIcon.Error);
 
                     //Form1 f1 = new Form1();
                     //f1.dataGridView1.DataSource = dt;
@@ -396,10 +439,10 @@ namespace Sklad
                     SQLiteCommand cmd = new SQLiteCommand(expression, connection);
                     cmd.Parameters.AddWithValue("number", number);
                     cmd.Parameters.AddWithValue("year", year);
-                         cmd.ExecuteNonQuery();
+                    cmd.ExecuteNonQuery();
 
                     cmd.CommandText = "SELECT last_insert_rowid()";
-                    
+
                     CatalogPeriodIndex = Convert.ToInt32(cmd.ExecuteScalar());
                 }
             }
@@ -488,7 +531,7 @@ namespace Sklad
                     SQLiteCommand cmd = new SQLiteCommand(expression, connection);
                     cmd.Parameters.AddWithValue("period", catalogPeriodID);
                     cmd.Parameters.AddWithValue("type", catalogTypeID);
-                                cmd.ExecuteNonQuery();
+                    cmd.ExecuteNonQuery();
 
                     cmd.CommandText = "SELECT last_insert_rowid()";
 
@@ -533,7 +576,7 @@ namespace Sklad
                                         (@category)";
                     SQLiteCommand cmd = new SQLiteCommand(expression, connection);
                     cmd.Parameters.AddWithValue("category", category);
-                             cmd.ExecuteNonQuery();
+                    cmd.ExecuteNonQuery();
 
                     cmd.CommandText = "SELECT last_insert_rowid()";
 

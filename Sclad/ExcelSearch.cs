@@ -64,6 +64,19 @@ namespace Sklad
             }
             return ResultSearchXLSX;
         }
+        static DataTable Search(object param)
+        {
+            Params p = (Params)param;
+            return Search(p.fieldSearch, p.searchBy);
+        }
+        public static Task<DataTable> SearchAsync(string fieldSearch, SearchBy searchBy)
+        {
+            Params p = new Params();
+            p.fieldSearch = fieldSearch;
+            p.searchBy = searchBy;
+            return Task<DataTable>.Factory.StartNew(Search, p);
+        }
+
 
         static void SearchByCode(string code, string file)
         {

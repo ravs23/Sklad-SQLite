@@ -1,5 +1,6 @@
 ﻿//#define DEVELOP
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -18,7 +19,7 @@ namespace Sklad
     {
         string currentCode;
         FrmAdd frmAdd;
-        FrmSearchResult searchResult;
+        FrmSearchResult frmSearchResult;
 
         public FrmMain()
         {
@@ -27,29 +28,29 @@ namespace Sklad
             Log.CheckSizeLogFile();
         }
 
-        private void frmMain_Load(object sender, EventArgs e)
+        private async void frmMain_Load(object sender, EventArgs e)
         {
-          //  DataBase.DeleteDB();
+            //  DataBase.DeleteDB();
             if (!DataBase.CheckExistDB())
             {
-                DataBase.CreateAllTabels();
-              //    DataBase.FillTestData();
+                await DataBase.CreateAllTabelsAsync();
+                //    DataBase.FillTestData();
             }
 
-            CatalogType.MakeList();
+            await CatalogType.MakeListAsync();
 
 #if DEVELOP     // ! используются только во время разработки (при использовании исключить выполнение DataBase.FillTestData();)
             CatalogPeriod.FillDBCatalog();
             Catalog.FillDBCatalog();
 #endif
 
-            Category.MakeList();
-            CatalogPeriod.MakeList();
-            Catalog.MakeList();
+            await Category.MakeListAsync();
+            await CatalogPeriod.MakeListAsync();
+            await Catalog.MakeListAsync();
 
 
             // заполняем грид при загрузке всеми продуктами
-            dgvMain.DataSource = SkladBase.SearchProdByCode(tbCode.Text);
+            dgvMain.DataSource = await SkladBase.SearchProdByCodeAsync(tbCode.Text);
 
             dgvMain.SelectionChanged += new System.EventHandler(dgvMain_SelectionChanged);
 
@@ -57,7 +58,7 @@ namespace Sklad
             if (dgvMain.CurrentRow != null)
             {
                 currentCode = dgvMain.CurrentRow.Cells["Code"].Value.ToString();
-                dgvDetails.DataSource = SkladBase.FilldgvDetails(currentCode);
+                dgvDetails.DataSource = await SkladBase.FilldgvDetailsAsync(currentCode);
             }
 
             tbCode.Select();
@@ -65,35 +66,23 @@ namespace Sklad
         }
 
         // обновляем грид после ввода каждого символа
-        private void tbCode_TextChanged(object sender, EventArgs e)
+        private async void tbCode_TextChanged(object sender, EventArgs e)
         {
             int input;
             if ((tbCode.Text.Length >= 4 && int.TryParse(tbCode.Text, out input) && input >= 1000) | tbNames.Text.Length > 0) btnSearch.Enabled = true;//btnSearch.Visible != true && 
             else btnSearch.Enabled = false;
 
-            DataTable res = SkladBase.SearchProdByCode(tbCode.Text);
+            DataTable res = await SkladBase.SearchProdByCodeAsync(tbCode.Text);
             dgvMain.DataSource = res; //заполняем грид
-
-            if (res.Rows.Count == 0) // если после поиска введенного кода выборка пуста, очищаем грид Details
-            {
-                DataTable dt = dgvDetails.DataSource as DataTable;
-                if (dt != null) dt.Clear();
-            }
         }
 
-        private void tbNames_TextChanged(object sender, EventArgs e)
+        private async void tbNames_TextChanged(object sender, EventArgs e)
         {
             if (tbNames.Text.Length > 0 || tbCode.Text.Length >= 4) btnSearch.Enabled = true;
             else btnSearch.Enabled = false;
 
-            DataTable res = SkladBase.SearchProdByName(tbNames.Text);
+            DataTable res = await SkladBase.SearchProdByNameAsync(tbNames.Text);
             dgvMain.DataSource = res; //заполняем грид
-
-            if (res.Rows.Count == 0) // если после поиска введенного кода выборка пуста, очищаем грид Details
-            {
-                DataTable dt = dgvDetails.DataSource as DataTable;
-                if (dt != null) dt.Clear();
-            }
         }
 
         // отрабатывает изменения выделения в основном гриде (мышью или клавишами)
@@ -102,15 +91,19 @@ namespace Sklad
             if (dgvMain.CurrentRow != null)
                 currentCode = dgvMain.CurrentRow.Cells["Code"].Value.ToString();
 
-            dgvDetails.DataSource = SkladBase.FilldgvDetails(currentCode);
+            if (!dgvMain.CurrentRow.Selected) //если после поиска введенного кода выборка пуста, очищаем грид Details
+                currentCode = "0";
+
+            dgvDetails.DataSource =   SkladBase.FilldgvDetails(currentCode);
+            //не использую FilldgvDetailsAsync так как при быстром вводе названия или кода бывают глюки с выборкой
         }
 
-        private void btnAdd_Click(object sender, EventArgs e)
+        private async void btnAdd_Click(object sender, EventArgs e)
         {
             frmAdd = new FrmAdd(tbCode.Text, tbNames.Text);
             if (frmAdd.ShowDialog(this) == DialogResult.OK)
             {
-                dgvMain.DataSource = SkladBase.SearchProdByCode("");
+                dgvMain.DataSource = await SkladBase.SearchProdByCodeAsync("");
             }
         }
 
@@ -142,19 +135,19 @@ namespace Sklad
             }
         }
 
-        private void btnSearch_Click(object sender, EventArgs e)
+        private async void btnSearch_Click(object sender, EventArgs e)
         {
             if (tbCode.Text.Length < 4 & btnSearch.Visible)
-                searchResult = new FrmSearchResult(tbNames.Text, SearchBy.Name);
+                frmSearchResult = new FrmSearchResult(tbNames.Text, SearchBy.Name);
             else
-                searchResult = new FrmSearchResult(tbCode.Text, SearchBy.Code);
+                frmSearchResult = new FrmSearchResult(tbCode.Text, SearchBy.Code);
 
-            if (searchResult.ShowDialog(this) == DialogResult.Yes)
+            if (frmSearchResult.ShowDialog(this) == DialogResult.Yes)
             {
-                frmAdd = new FrmAdd(searchResult.SelectedCode, searchResult.SelectedName, searchResult.SelectedPriceDC, searchResult.SelectedPricePC, searchResult.SelectedDiscont, searchResult.SelectedPeriodText, searchResult.selectedPeriod, searchResult.selectedYear);
+                frmAdd = new FrmAdd(frmSearchResult.SelectedCode, frmSearchResult.SelectedName, frmSearchResult.SelectedPriceDC, frmSearchResult.SelectedPricePC, frmSearchResult.SelectedDiscont, frmSearchResult.SelectedPeriodText, frmSearchResult.selectedPeriod, frmSearchResult.selectedYear);
                 frmAdd.ShowDialog(this);
             }
-            dgvMain.DataSource = SkladBase.SearchProdByName("");
+            dgvMain.DataSource = await SkladBase.SearchProdByNameAsync("");
         }
 
         private void btnCalc_Click(object sender, EventArgs e)
@@ -188,7 +181,7 @@ namespace Sklad
                         dgvDetails.Rows[e.RowIndex].Cells["Quant"].Value = Convert.ToInt32(dgvDetails.Rows[e.RowIndex].Cells["Quant"].Value) - 1;// = Total quant - 1;
 
                         await SkladBase.UpDownQtyPriceAsync(code, quant, dc, pc, discont, UpDownOperation.Down); // вызываем метод уменьшения кол-ва продукта в DB
-                        await Log.LogWriteAsync($"{code} уменьшен на 1 шт. ({productName}, ДЦ {dc}, ПЦ {pc}, Скидка " + (discont==true ? "есть":"нет") + ")");
+                        await Log.LogWriteAsync($"{code} уменьшен на 1 шт. ({productName}, ДЦ {dc}, ПЦ {pc}, Скидка " + (discont == true ? "есть" : "нет") + ")");
                     }
                     break;
 
@@ -211,7 +204,7 @@ namespace Sklad
         private async void DeleteProdFromPrice(int code, int quant, double dc, double pc, bool discont, int rowIndex)
         {
             dgvDetails.Rows.RemoveAt(rowIndex); //удаляем строку из грид Detail
-            
+
             await SkladBase.DeleteProdFromPriceAsync(code, quant, dc, pc, discont);
             // Корректируем кол-во в основном гриде
             if (dgvDetails.Rows.Count > 0)
@@ -235,14 +228,20 @@ namespace Sklad
         {
             if (e.ColumnIndex != 0) return;
 
+            int curCode = Int32.Parse(currentCode);
+            int quant = Convert.ToInt32(dgvMain.CurrentRow.Cells[3].Value);
+            string name = (string)dgvMain.CurrentRow.Cells[2].Value;
+
             dgvMain.Rows.Remove(dgvMain.CurrentRow);
             if (dgvMain.RowCount > 0)
                 dgvMain.CurrentRow.Selected = true;
 
-            await SkladBase.DeleteProdFromPriceAsync(Int32.Parse(currentCode));
-            await SkladBase.DeleteProdFromProductTableAsync(Int32.Parse(currentCode));
+            await SkladBase.DeleteProdFromPriceAsync(curCode);
+            await SkladBase.DeleteProdFromProductTableAsync(curCode);
+            await Log.LogWriteAsync($"{curCode} удалены ВСЕ {quant} шт. ({name})");
 
-            await Log.LogWriteAsync($"{currentCode} удалены ВСЕ {dgvMain.CurrentRow.Cells[3].Value} шт. ({dgvMain.CurrentRow.Cells[2].Value})");
+            if (dgvMain.RowCount == 0)
+                dgvDetails.DataSource = await SkladBase.FilldgvDetailsAsync(currentCode);
         }
 
 
@@ -283,7 +282,7 @@ namespace Sklad
             this.Close();
         }
 
-        private void tsmExport_Click(object sender, EventArgs e)
+        private async void tsmExport_Click(object sender, EventArgs e)
         {
             savefdExport.Filter = "Excel (*.xlsx)|*.xlsx";
             savefdExport.DefaultExt = "xlsx";
@@ -291,25 +290,29 @@ namespace Sklad
             //savefdExport.InitialDirectory = Environment.CurrentDirectory;
             if (savefdExport.ShowDialog(this) == DialogResult.OK && savefdExport.FileName.Length > 0)
             {
-                ImportExport.Export(savefdExport.FileName);
+                string holdTxt = this.Text;
+                this.Text += " [ Экспорт ... ]";
+                await ImportExport.ExportAsync(savefdExport.FileName);
+                this.Text = holdTxt;
             }
         }
 
-        private void tsmImport_Click(object sender, EventArgs e)
+        private async void tsmImport_Click(object sender, EventArgs e)
         {
             openfdImport.Filter = "Excel (*.xlsx)|*.xlsx";
             openfdImport.DefaultExt = "xlsx";
             if (openfdImport.ShowDialog(this) == DialogResult.OK && File.Exists(openfdImport.FileName))
             {
-                ImportExport.Import(openfdImport.FileName);
+                string holdTxt = this.Text;
+                this.Text += " [ Импорт ... ]";
+                await ImportExport.ImportAsync(openfdImport.FileName);
 
-                CatalogType.MakeList();
-                Category.MakeList();
-                CatalogPeriod.MakeList();
-                Catalog.MakeList();
-                dgvMain.DataSource = SkladBase.SearchProdByCode(tbCode.Text);
-
-
+                await CatalogType.MakeListAsync();
+                await Category.MakeListAsync();
+                await CatalogPeriod.MakeListAsync();
+                await Catalog.MakeListAsync();
+                dgvMain.DataSource = await SkladBase.SearchProdByCodeAsync(tbCode.Text);
+                this.Text = holdTxt;
             }
 
         }

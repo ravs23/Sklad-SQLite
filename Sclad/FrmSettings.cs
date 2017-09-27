@@ -96,15 +96,19 @@ namespace Sklad
             tbFolderPrices.Text += "\\";
         }
 
-        private void btnOptimiztion_Click(object sender, EventArgs e)
+        private async void btnOptimiztion_Click(object sender, EventArgs e)
         {
-            SkladBase.Optimization();
+            string holdTxt = this.Text;
+            this.Text += " [ Оптимизация ... ]";
 
-            Category.MakeList();
-            CatalogPeriod.MakeList();
-            Catalog.MakeList();
+            await SkladBase.OptimizationAsync();
+
+            await Category.MakeListAsync();
+            await CatalogPeriod.MakeListAsync();
+            await Catalog.MakeListAsync();
 
             MessageBox.Show("Оптимизация выполнена.", "Оптимизация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            this.Text = holdTxt;    
         }
     }
 }

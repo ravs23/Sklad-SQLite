@@ -14,6 +14,11 @@ namespace Sklad
     {
         public static List<CategoryOne> category;
 
+        public static Task MakeListAsync()
+        {
+            return Task.Factory.StartNew(MakeList);
+        }
+
         public static void MakeList()
         {
             FillDBCategory();

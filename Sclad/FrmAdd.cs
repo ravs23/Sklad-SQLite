@@ -6,6 +6,7 @@ using System.Data.SqlClient;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -13,7 +14,7 @@ namespace Sklad
 {
     public partial class FrmAdd : Form
     {
-        FrmSearchResult searchResult;
+        FrmSearchResult frmSearchResult;
         FrmAddPeriod frmAddPeriod;
 
         public FrmAdd()
@@ -52,11 +53,16 @@ namespace Sklad
             else
             {
                 // добавляем каталожный период в БД (без проверки на его существование)
-                SkladBase.AddCatalogPeriod(period, year);
-
-                cbCatalog.DataSource = CatalogPeriod.catalogPeriod;
-                cbCatalog.Text = periodText;
+                AddCatPeriod(period, year, periodText);
             }
+        }
+
+        async void AddCatPeriod(int period, int year, string periodText)
+        {
+            await SkladBase.AddCatalogPeriodAsync(period, year);
+
+            cbCatalog.DataSource = CatalogPeriod.catalogPeriod;
+            cbCatalog.Text = periodText;
         }
 
         private void tbCode_TextChanged(object sender, EventArgs e)
@@ -72,31 +78,31 @@ namespace Sklad
             else btnSearch.Enabled = false;
         }
 
-        private void btnSearch_Click(object sender, EventArgs e)
+        private async void btnSearch_Click(object sender, EventArgs e)
         {
             if (tbCode.Text.Length < 4 & btnSearch.Visible)
-                searchResult = new FrmSearchResult(tbNames.Text, SearchBy.Name);
+                frmSearchResult = new FrmSearchResult(tbNames.Text, SearchBy.Name);
             else
-                searchResult = new FrmSearchResult(tbCode.Text, SearchBy.Code);
+                frmSearchResult = new FrmSearchResult(tbCode.Text, SearchBy.Code);
 
-            if (searchResult.ShowDialog(this) == DialogResult.Yes)
+            if (frmSearchResult.ShowDialog(this) == DialogResult.Yes)
             {
-                tbCode.Text = searchResult.SelectedCode;
-                tbNames.Text = searchResult.SelectedName;
-                tbPriceDC.Text = searchResult.SelectedPriceDC;
-                tbPricePC.Text = searchResult.SelectedPricePC;
-                cbDiscont.Checked = searchResult.SelectedDiscont;
+                tbCode.Text = frmSearchResult.SelectedCode;
+                tbNames.Text = frmSearchResult.SelectedName;
+                tbPriceDC.Text = frmSearchResult.SelectedPriceDC;
+                tbPricePC.Text = frmSearchResult.SelectedPricePC;
+                cbDiscont.Checked = frmSearchResult.SelectedDiscont;
 
                 // Устанавливаем в ComboBox с периодами каталога выбранное значение. Если такового нет в БД - добавляем
-                if (CatalogPeriod.SearchSuchCatalog(searchResult.SelectedPeriodText))
-                    cbCatalog.Text = searchResult.SelectedPeriodText;
+                if (CatalogPeriod.SearchSuchCatalog(frmSearchResult.SelectedPeriodText))
+                    cbCatalog.Text = frmSearchResult.SelectedPeriodText;
                 else
                 {
                     // добавляем каталожный период в БД (без проверки на его существование)
-                    SkladBase.AddCatalogPeriod(searchResult.selectedPeriod, searchResult.selectedYear);
+                    await SkladBase.AddCatalogPeriodAsync(frmSearchResult.selectedPeriod, frmSearchResult.selectedYear);
 
                     cbCatalog.DataSource = CatalogPeriod.catalogPeriod;
-                    cbCatalog.Text = searchResult.SelectedPeriodText;
+                    cbCatalog.Text = frmSearchResult.SelectedPeriodText;
                 }
             }
 
@@ -109,19 +115,19 @@ namespace Sklad
                 // Проверяем есть ли такой период и тип в БД.Если есть, получаем id(табл Catalog), если нет - создаём и получаем id
                 int catalogId = await SkladBase.AddCatalogAsync((int)cbCatalog.SelectedValue, cbTypeCatalog.SelectedIndex + 1);
                 // Проверяем есть ли такой продукт в БД. Если есть, получаем id (табл Product), если нет - создаём и получаем id
-                SkladBase.AddProduct(tbCode.Text, tbNames.Text, (int)cbCategory.SelectedValue);
+                await SkladBase.AddProductAsync(tbCode.Text, tbNames.Text, (int)cbCategory.SelectedValue);
 
                 // проверяем наличие такого продукта в БД.
                 int quantityInBD;
                 int idProductInPrice = SkladBase.CheckExistProductFull(out quantityInBD, tbCode.Text, Convert.ToDouble(tbPricePC.Text), Convert.ToDouble(tbPriceDC.Text), catalogId, cbDiscont.Checked);
-                if (0 == idProductInPrice) // если нет, то добавляем
-                    SkladBase.AddProductToPrice(tbCode.Text, Convert.ToDouble(tbPricePC.Text), Convert.ToDouble(tbPriceDC.Text), catalogId, (int)numQuantity.Value, cbDiscont.Checked, tbDescription.Text);
+                if (0 == idProductInPrice) // если нет, то добавляем продукт
+                    await SkladBase.AddProductToPriceAsync(tbCode.Text, Convert.ToDouble(tbPricePC.Text), Convert.ToDouble(tbPriceDC.Text), catalogId, (int)numQuantity.Value, cbDiscont.Checked, tbDescription.Text);
                 else // если есть, добавляем количество
-                    SkladBase.UpdateProductQuantInPrice(idProductInPrice, quantityInBD + (int)numQuantity.Value);
+                    await SkladBase.UpdateProductQuantInPriceAsync(idProductInPrice, quantityInBD + (int)numQuantity.Value);
                 
                 this.DialogResult = DialogResult.OK;
 
-                Log.LogWrite($"{tbCode.Text} добавлен {numQuantity.Value} шт. ({tbNames.Text}, ДЦ {tbPriceDC.Text}, ПЦ {tbPricePC.Text}, Скидка " + (cbDiscont.Checked == true ? "есть" : "нет") + $", каталог {cbCatalog.Text})");
+                await Log.LogWriteAsync($"{tbCode.Text} добавлен {numQuantity.Value} шт. ({tbNames.Text}, ДЦ {tbPriceDC.Text}, ПЦ {tbPricePC.Text}, Скидка " + (cbDiscont.Checked == true ? "есть" : "нет") + $", каталог {cbCatalog.Text})");
             }
 
             ///проверяем все поля на валидность
@@ -142,7 +148,7 @@ namespace Sklad
 
         }
 
-        private void btAddCategory_Click(object sender, EventArgs e)
+        private async void btAddCategory_Click(object sender, EventArgs e)
         {
             foreach (CategoryOne item in Category.category)
             {
@@ -166,30 +172,28 @@ namespace Sklad
                 return;
             }
 
-            SkladBase.AddCategory(cbCategory.Text.Trim());
+            await SkladBase.AddCategoryAsunc(cbCategory.Text.Trim());
             MessageBox.Show($"Категория \"{cbCategory.Text.Trim()}\" добавлена", "Добавлено");
 
             string categoryAdded = cbCategory.Text.Trim();
-            Category.MakeList();
+            await Category.MakeListAsync();
             cbCategory.DataSource = Category.category;
             cbCategory.Text = categoryAdded;
-
         }
 
-        private void btnAddCatalog_Click(object sender, EventArgs e)
+        private async void btnAddCatalog_Click(object sender, EventArgs e)
         {
             frmAddPeriod = new FrmAddPeriod();
             DialogResult dRes = frmAddPeriod.ShowDialog(this);
             if (dRes == DialogResult.OK)
             {
                 // добавляем каталожный период в БД (без проверки на его существование)
-                SkladBase.AddCatalogPeriod(frmAddPeriod.Period, frmAddPeriod.Year);
+                await SkladBase.AddCatalogPeriodAsync(frmAddPeriod.Period, frmAddPeriod.Year);
 
                 cbCatalog.DataSource = CatalogPeriod.catalogPeriod;
                 cbCatalog.Text = frmAddPeriod.InputedPeriodText;
             }
         }
-
 
 
         private void tbPricePC_Leave(object sender, EventArgs e)

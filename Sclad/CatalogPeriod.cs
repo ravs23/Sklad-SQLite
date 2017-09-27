@@ -13,6 +13,11 @@ namespace Sklad
     {
         public static List<CatalogPeriodOne> catalogPeriod;
 
+        public static Task MakeListAsync()
+        {
+            return Task.Factory.StartNew(MakeList);
+        }
+
         // Выбираем две таблицы C_period,C_p_year и создаем список существующих каталогов
         public static void MakeList()
         {

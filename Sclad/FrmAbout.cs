@@ -20,6 +20,7 @@ namespace Sklad
             this.labelCopyright.Text = AssemblyCopyright;
             this.labelCompanyName.Text = AssemblyCompany;
             this.textBoxDescription.Text = AssemblyDescription;
+
         }
 
         #region Методы доступа к атрибутам сборки

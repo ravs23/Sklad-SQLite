@@ -13,6 +13,11 @@ namespace Sklad
     {
         public static List<string> catalogType;
 
+        public static Task MakeListAsync()
+        {
+            return Task.Factory.StartNew(MakeList);
+        }
+
         public static void MakeList()
         {
             FillDBCatalogType();

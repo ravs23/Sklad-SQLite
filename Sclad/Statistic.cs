@@ -10,9 +10,6 @@ namespace Sklad
 {
     class Statistic
     {
-
-
-
         public static string[] GetStatistic()
         {
             string[] results = new string[7];
@@ -52,9 +49,12 @@ namespace Sklad
 
             return results;
         }
+        public static Task<string[]> GetStatisticAsync()
+        {
+            return Task<string[]>.Factory.StartNew(GetStatistic);
+        }
 
-
-        public static string[] GetStatistic(int catalogType, int category, FrmStatistic frm)
+        public static string[] GetStatistic(int catalogType, int category)
         {
             string[] results = new string[7] { "", "", "", "", "", "", "" };
             if (catalogType == 0 & category == 0)
@@ -70,7 +70,6 @@ namespace Sklad
                 for (int i = 0; i < results.Length; i++)
                 {
                     cmd.CommandText = queries[i];
-                    frm.tbTEST.Text = queries[i];
                     SQLiteDataReader reader = cmd.ExecuteReader();
 
                     if (!reader.HasRows)
@@ -90,7 +89,18 @@ namespace Sklad
             }
             return results;
         }
-
+        public static Task<string[]> GetStatisticAsync(int catalogType, int category)
+        {
+            Params p = new Params();
+            p.catalogType = catalogType;
+            p.category = category;
+            return Task<string[]>.Factory.StartNew(GetStatistic, p);
+        }
+        static string[] GetStatistic(object param)
+        {
+            Params p = (Params)param;
+            return GetStatistic(p.catalogType, p.category);
+        }
 
 
         static string[] GetQueries(int catalogType, int category)

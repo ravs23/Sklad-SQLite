@@ -3,6 +3,7 @@ using System.Data;
 using System.Data.SQLite;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Sklad
 {
@@ -16,6 +17,10 @@ namespace Sklad
             return File.Exists(dbFile);
         }
 
+        public static Task CreateAllTabelsAsync()
+        {
+            return Task.Factory.StartNew(CreateAllTabels);
+        }
         public static void CreateAllTabels()
         {
             using (SQLiteConnection connection = new SQLiteConnection(ConStrDB))
@@ -100,7 +105,6 @@ namespace Sklad
                                     )";
                     cmd.CommandText = expression;
                     cmd.ExecuteNonQuery();
-
             }
         }
 
@@ -256,3 +260,7 @@ namespace Sklad
 //  LEFT JOIN Product
 //  ON Product_category.id = Product.category
 //  WHERE Product.category IS NULL
+
+
+
+ 

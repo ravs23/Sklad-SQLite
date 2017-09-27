@@ -132,6 +132,7 @@
     <Compile Include="FrmStatistic.Designer.cs">
       <DependentUpon>FrmStatistic.cs</DependentUpon>
     </Compile>
+    <Compile Include="SqliteExtention.cs" />
     <Compile Include="Statistic.cs" />
     <Compile Include="TableExtensoinClass.cs" />
     <EmbeddedResource Include="FrmAbout.resx">

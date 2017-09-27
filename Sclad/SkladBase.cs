@@ -11,8 +11,6 @@ using System.Windows.Forms;
 
 namespace Sklad
 {
-
-
     static class SkladBase
     {
         /// <summary>
@@ -43,6 +41,20 @@ namespace Sklad
             result.Columns[2].ReadOnly = false;
             return result;
         }
+        /// <summary>
+        /// Выбираем продукты из БД по коду для заполнения основного грида асинхронно
+        /// </summary>
+        /// <param name="code">Код продутка</param>
+        /// <returns></returns>
+        public static Task<DataTable> SearchProdByCodeAsync(string code)
+        {
+            return Task<DataTable>.Factory.StartNew(SearchProdByCode, code);
+        }
+        static DataTable SearchProdByCode(object code)
+        {
+            return SearchProdByCode((string)code);
+        }
+
 
         /// <summary>
         /// Выбираем продукты из БД по названию для заполнения основного грида
@@ -52,13 +64,14 @@ namespace Sklad
         public static DataTable SearchProdByName(string name)
         {
             DataTable result = new DataTable();
+            name = name.ToLower();
 
             using (SQLiteConnection connection = new SQLiteConnection(DataBase.ConStrDB))
             {
                 connection.Open();
                 string sql = @"SELECT Product.code, Product.name, sum(Price.quantity) AS total
                             FROM Product, Price
-                            WHERE Price.code = Product.code AND Product.Name LIKE @name
+                            WHERE Price.code = Product.code AND lower (Product.Name) LIKE @name
                             GROUP BY Product.code, Product.Name";
 
                 SQLiteCommand command = new SQLiteCommand(sql, connection);
@@ -72,6 +85,20 @@ namespace Sklad
             result.Columns[2].ReadOnly = false;
             return result;
         }
+        /// <summary>
+        /// Выбираем продукты из БД по названию для заполнения основного грида асинхронно
+        /// </summary>
+        /// <param name="name">Название продукта</param>
+        /// <returns></returns>
+        public static Task<DataTable> SearchProdByNameAsync(string name)
+        {
+            return Task<DataTable>.Factory.StartNew(SearchProdByName, name);
+        }
+        static DataTable SearchProdByName(object name)
+        {
+            return SearchProdByName((string)name);
+        }
+
 
         /// <summary>
         /// Заполняем грид Details в соответствии с выбранным продуктом в основном гриде
@@ -83,7 +110,8 @@ namespace Sklad
             DataTable resultDetails = new DataTable();
 
             if (String.IsNullOrEmpty(currentCode))
-                return resultDetails;
+                //return resultDetails;
+                currentCode = "0";
 
             using (SQLiteConnection connection = new SQLiteConnection(DataBase.ConStrDB))
             {
@@ -102,8 +130,19 @@ namespace Sklad
             }
             return resultDetails;
         }
-
-
+        /// <summary>
+        /// Заполняем грид Details в соответствии с выбранным продуктом в основном гриде асинхронно
+        /// </summary>
+        /// <param name="currentCode">Код выбранного продукта в основном гриде</param>
+        /// <returns></returns>
+        public static Task<DataTable> FilldgvDetailsAsync(string currentCode)
+        {
+            return Task<DataTable>.Factory.StartNew(FilldgvDetails, currentCode);
+        }
+        static DataTable FilldgvDetails(object currentCode)
+        {
+            return FilldgvDetails((string)currentCode);
+        }
 
 
         /// <summary>
@@ -360,7 +399,7 @@ namespace Sklad
             Params p = (Params)param;
             return AddCatalog(p.period, p.type);
         }
-        
+
 
         #region Добавляем каталожный период
         /// <summary>
@@ -370,7 +409,6 @@ namespace Sklad
         /// <param name="year"></param>
         public static void AddCatalogPeriod(int period, int year)
         {
-
             int yearId = CheckExistYear(year);
 
             if (yearId == 0)
@@ -464,10 +502,6 @@ namespace Sklad
         #endregion
 
 
-
-
-
-
         /// <summary>
         /// Проверяем есть ли такой продукт в БД (табл Product). Еесли нет - создаём
         /// </summary>
@@ -498,6 +532,24 @@ namespace Sklad
                 }
             }
         }
+        /// <summary>
+        /// Проверяем есть ли такой продукт в БД (табл Product) асинхронно. Еесли нет - создаём
+        /// </summary>
+        /// <param name="code">Код продукта</param>
+        public static Task AddProductAsync(string code, string name, int category)
+        {
+            Params p = new Params();
+            p.code_ = code;
+            p.name = name;
+            p.category = category;
+            return Task.Factory.StartNew(AddProduct, p);
+        }
+        static void AddProduct(object param)
+        {
+            Params p = (Params)param;
+            AddProduct(p.code_, p.name, p.category);
+        }
+
 
         /// <summary>
         /// Добавляем продукт в таблицу Price
@@ -530,6 +582,35 @@ namespace Sklad
                 cmd.ExecuteNonQuery();
             }
         }
+        /// <summary>
+        /// Добавляем продукт в таблицу Price асинхронно
+        /// </summary>
+        /// <param name="code"></param>
+        /// <param name="pricePC"></param>
+        /// <param name="priceDC"></param>
+        /// <param name="catalogId"></param>
+        /// <param name="quantity"></param>
+        /// <param name="discont"></param>
+        /// <param name="description"></param>
+        public static Task AddProductToPriceAsync(string code, double pricePC, double priceDC, int catalogId, int quantity, bool discont, string description)
+        {
+            Params p = new Params();
+            p.code_ = code;
+            p.pc = pricePC;
+            p.dc = priceDC;
+            p.catalogId = catalogId;
+            p.quant = quantity;
+            p.discont = discont;
+            p.description = description;
+
+            return Task.Factory.StartNew(AddProductToPrice, p);
+        }
+        static void AddProductToPrice(object param)
+        {
+            Params p = (Params)param;
+            AddProductToPrice(p.code_, p.pc, p.dc, p.catalogId, p.quant, p.discont, p.description);
+        }
+        
 
         /// <summary>
         /// Добавление категории продукта
@@ -549,6 +630,19 @@ namespace Sklad
                 cmd.ExecuteNonQuery();
             }
         }
+        /// <summary>
+        /// Добавление категории продукта асинхронно
+        /// </summary>
+        /// <param name="categoryName">Название категории</param>
+        public static Task AddCategoryAsunc(string categoryName)
+        {
+            return Task.Factory.StartNew(AddCategory, categoryName);
+        }
+        static void AddCategory(object param)
+        {
+            AddCategory((string)param);
+        }
+
 
         /// <summary>
         /// Поиск продукта в БД для отображения в форме Результат поиска
@@ -608,6 +702,25 @@ namespace Sklad
 
             return ResultSearchDB;
         }
+        /// <summary>
+        /// Поиск продукта в БД для отображения в форме Результат поиска асинхронно
+        /// </summary>
+        /// <param name="fieldSearch">Искомое значение</param>
+        /// <param name="searchBy">По какому полю искать</param>
+        /// <returns></returns>
+        public static Task<DataTable> SearchForAddAsync(string fieldSearch, SearchBy searchBy)
+        {
+            Params p = new Params();
+            p.fieldSearch = fieldSearch;
+            p.searchBy = searchBy;
+            return Task.Factory.StartNew(SearchForAdd, p);
+        }
+        static DataTable SearchForAdd(object param)
+        {
+            Params p = (Params)param;
+            return SearchForAdd(p.fieldSearch, p.searchBy);
+        }
+
 
         public static int CheckExistProductFull(out int quantityBD, string code, double pricePC, double priceDC, int catalogId, bool discont)
         {
@@ -641,6 +754,7 @@ namespace Sklad
             return productIndex;
         }
 
+
         public static void UpdateProductQuantInPrice(int id, int newQuantity)
         {
             using (SQLiteConnection connection = new SQLiteConnection(DataBase.ConStrDB))
@@ -655,6 +769,18 @@ namespace Sklad
                 command.Parameters.AddWithValue("newQuantity", newQuantity);
                 command.ExecuteNonQuery();
             }
+        }
+        public static Task UpdateProductQuantInPriceAsync(int id, int newQuantity)
+        {
+            Params p = new Params();
+            p.id = id;
+            p.newQuantity = newQuantity;
+            return Task.Factory.StartNew(UpdateProductQuantInPrice, p);
+        }
+        static void UpdateProductQuantInPrice(object param)
+        {
+            Params p = (Params)param;
+            UpdateProductQuantInPrice(p.id, p.newQuantity);
         }
 
 
@@ -678,8 +804,8 @@ namespace Sklad
             return num + " / " + year.ToString();
         }
 
-        #region Optimization
 
+        #region Optimization
         public static void Optimization()
         {
             using (SQLiteConnection connection = new SQLiteConnection(DataBase.ConStrDB))
@@ -778,6 +904,10 @@ namespace Sklad
                 }
                 reader.Close();
             }
+        }
+        public static Task OptimizationAsync()
+        {
+            return Task.Factory.StartNew(Optimization);
         }
         #endregion
     }

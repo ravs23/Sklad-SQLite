@@ -13,6 +13,11 @@ namespace Sklad
     {
         public static List<CatalogOne> catalog;
 
+        public static Task MakeListAsync()
+        {
+            return Task.Factory.StartNew(MakeList);
+        }
+
         // Выбираем таблицу Catalog и создаем список существующих каталогов и типов
         public static void MakeList()
         {
@@ -48,7 +53,7 @@ namespace Sklad
             }
         }
 
-        // Искуственный фил во время разработки. В рабочей программе не используем этот метод,
+        // Искуственный фил во время разработки. В рабочей программе не используется этот метод,
         // так как программа поставляется с пустыми таблицами, заполняемыми в этом методе
         public static void FillDBCatalog()
         {
