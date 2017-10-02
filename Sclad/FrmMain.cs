@@ -89,13 +89,15 @@ namespace Sklad
         private void dgvMain_SelectionChanged(object sender, EventArgs e)
         {
             if (dgvMain.CurrentRow != null)
-                currentCode = dgvMain.CurrentRow.Cells["Code"].Value.ToString();
+            {
+                if (!dgvMain.CurrentRow.Selected) //если после поиска введенного кода выборка пуста, очищаем грид Details
+                    currentCode = "0";
+                else
+                    currentCode = dgvMain.CurrentRow.Cells["Code"].Value.ToString(); //иначе заполняем деталями по текущему коду.
 
-            if (!dgvMain.CurrentRow.Selected) //если после поиска введенного кода выборка пуста, очищаем грид Details
-                currentCode = "0";
-
-            dgvDetails.DataSource =   SkladBase.FilldgvDetails(currentCode);
-            //не использую FilldgvDetailsAsync так как при быстром вводе названия или кода бывают глюки с выборкой
+                dgvDetails.DataSource = SkladBase.FilldgvDetails(currentCode);
+                //не использую FilldgvDetailsAsync так как при быстром вводе названия или кода бывают глюки с выборкой
+            }
         }
 
         private async void btnAdd_Click(object sender, EventArgs e)
@@ -284,6 +286,7 @@ namespace Sklad
 
         private async void tsmExport_Click(object sender, EventArgs e)
         {
+            tsmExit.Enabled = false;
             savefdExport.Filter = "Excel (*.xlsx)|*.xlsx";
             savefdExport.DefaultExt = "xlsx";
             savefdExport.FileName = "SkladOriflame_BackUp_" + DateTime.Now.Date.ToString("yyyy_MM_dd") + ".xlsx";
@@ -295,10 +298,12 @@ namespace Sklad
                 await ImportExport.ExportAsync(savefdExport.FileName);
                 this.Text = holdTxt;
             }
+            tsmExit.Enabled = true;
         }
 
         private async void tsmImport_Click(object sender, EventArgs e)
         {
+            tsmImport.Enabled = false;
             openfdImport.Filter = "Excel (*.xlsx)|*.xlsx";
             openfdImport.DefaultExt = "xlsx";
             if (openfdImport.ShowDialog(this) == DialogResult.OK && File.Exists(openfdImport.FileName))
@@ -314,8 +319,9 @@ namespace Sklad
                 dgvMain.DataSource = await SkladBase.SearchProdByCodeAsync(tbCode.Text);
                 this.Text = holdTxt;
             }
-
+            tsmImport.Enabled = true;
         }
+
         private void tsmMenuStatistic_Click(object sender, EventArgs e)
         {
             FrmStatistic frmStaristic = new FrmStatistic();

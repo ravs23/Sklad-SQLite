@@ -48,11 +48,7 @@ namespace Sklad
         /// <returns></returns>
         public static Task<DataTable> SearchProdByCodeAsync(string code)
         {
-            return Task<DataTable>.Factory.StartNew(SearchProdByCode, code);
-        }
-        static DataTable SearchProdByCode(object code)
-        {
-            return SearchProdByCode((string)code);
+            return Task<DataTable>.Factory.StartNew(()=>SearchProdByCode(code));
         }
 
 
@@ -92,12 +88,13 @@ namespace Sklad
         /// <returns></returns>
         public static Task<DataTable> SearchProdByNameAsync(string name)
         {
-            return Task<DataTable>.Factory.StartNew(SearchProdByName, name);
+            //return Task<DataTable>.Factory.StartNew(SearchProdByName, name);
+            return Task<DataTable>.Factory.StartNew(()=>SearchProdByName(name));
         }
-        static DataTable SearchProdByName(object name)
-        {
-            return SearchProdByName((string)name);
-        }
+        //static DataTable SearchProdByName(object name)
+        //{
+        //    return SearchProdByName((string)name);
+        //}
 
 
         /// <summary>
@@ -137,12 +134,13 @@ namespace Sklad
         /// <returns></returns>
         public static Task<DataTable> FilldgvDetailsAsync(string currentCode)
         {
-            return Task<DataTable>.Factory.StartNew(FilldgvDetails, currentCode);
+            return Task<DataTable>.Factory.StartNew(()=>FilldgvDetails(currentCode));
+           // return Task<DataTable>.Factory.StartNew(FilldgvDetails, currentCode);
         }
-        static DataTable FilldgvDetails(object currentCode)
-        {
-            return FilldgvDetails((string)currentCode);
-        }
+        //static DataTable FilldgvDetails(object currentCode)
+        //{
+        //    return FilldgvDetails((string)currentCode);
+        //}
 
 
         /// <summary>
@@ -198,13 +196,19 @@ namespace Sklad
             p.pc = pc;
             p.discont = discont;
             p.upDownOp = upDownOp;
-            return Task.Factory.StartNew(UpDownQtyPrice, p);
+
+            //return Task.Factory.StartNew(UpDownQtyPrice, p);
+
+            return Task.Factory.StartNew((par)=> {
+                Params param = (Params)par;
+                UpDownQtyPrice(param.code, param.quant, param.dc, param.pc, param.discont, param.upDownOp);
+            }, p);
         }
-        static void UpDownQtyPrice(object param)
-        {
-            Params p = (Params)param;
-            UpDownQtyPrice(p.code, p.quant, p.dc, p.pc, p.discont, p.upDownOp);
-        }
+        //static void UpDownQtyPrice(object param)
+        //{
+        //    Params p = (Params)param;
+        //    UpDownQtyPrice(p.code, p.quant, p.dc, p.pc, p.discont, p.upDownOp);
+        //}
 
 
         /// <summary>
@@ -314,12 +318,13 @@ namespace Sklad
         /// <param name="code">Код</param>
         public static Task DeleteProdFromProductTableAsync(int code)
         {
-            return Task.Factory.StartNew(DeleteProdFromProductTable, code);
+            //return Task.Factory.StartNew(DeleteProdFromProductTable, code);
+            return Task.Factory.StartNew(()=>DeleteProdFromProductTable(code));
         }
-        static void DeleteProdFromProductTable(object code)
-        {
-            DeleteProdFromProductTable((int)code);
-        }
+        //static void DeleteProdFromProductTable(object code)
+        //{
+        //    DeleteProdFromProductTable((int)code);
+        //}
 
 
         /// <summary>

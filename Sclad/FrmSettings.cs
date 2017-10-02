@@ -98,6 +98,7 @@ namespace Sklad
 
         private async void btnOptimiztion_Click(object sender, EventArgs e)
         {
+            btnOptimiztion.Enabled = false;
             string holdTxt = this.Text;
             this.Text += " [ Оптимизация ... ]";
 
@@ -108,7 +109,8 @@ namespace Sklad
             await Catalog.MakeListAsync();
 
             MessageBox.Show("Оптимизация выполнена.", "Оптимизация", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            this.Text = holdTxt;    
+            this.Text = holdTxt;
+            btnOptimiztion.Enabled = true;
         }
     }
 }
